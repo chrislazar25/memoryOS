@@ -106,6 +106,15 @@ Use:
 - Vercel for the frontend (`ui/`)
 - Render for the backend (`core.server:app`)
 
+### Render (free tier, no persistent disk)
+
+Render free web services do not support attached disks. In this repo, backend SQLite is configured to use `/tmp/memories.db` on Render free tier.
+
+What this means:
+- Storage is ephemeral.
+- Data can reset on service restarts, cold starts, or redeploys.
+- This is acceptable for portfolio/demo usage, but not for durable production data.
+
 ---
 
 ## Architecture
