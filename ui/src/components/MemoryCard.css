@@ -1,0 +1,160 @@
+.card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  outline: none;
+  user-select: none;
+}
+
+.card:hover {
+  border-color: #30363d;
+  background: #1a2030;
+}
+
+.card:focus-visible {
+  border-color: #58a6ff;
+}
+
+.card--expanded {
+  border-color: #30363d;
+  background: #1a2030;
+  cursor: default;
+}
+
+/* header row */
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.card__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card__hash {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  font-size: 12px;
+  color: #8b949e;
+  background: #0d1117;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #21262d;
+}
+
+.card__score {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #8b949e;
+  background: #0d1117;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #21262d;
+}
+
+.card__chevron {
+  font-size: 10px;
+  color: #484f58;
+  flex-shrink: 0;
+}
+
+/* commit message */
+.card__message {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e6edf3;
+  line-height: 1.4;
+}
+
+/* reason preview */
+.card__reason-preview {
+  margin: 0;
+  font-size: 12px;
+  color: #8b949e;
+  line-height: 1.5;
+  min-height: 1em;
+}
+
+/* expanded detail */
+.card__detail {
+  margin-top: 14px;
+  border-top: 1px solid #21262d;
+  padding-top: 14px;
+  cursor: auto;
+  user-select: text;
+}
+
+.card__section {
+  margin-bottom: 14px;
+}
+
+.card__section:last-child {
+  margin-bottom: 0;
+}
+
+.card__section-title {
+  margin: 0 0 6px 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #484f58;
+}
+
+.card__body {
+  font-size: 13px;
+  color: #c9d1d9;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* tradeoffs */
+.card__tradeoff {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: baseline;
+}
+
+.card__tradeoff:last-child {
+  margin-bottom: 0;
+}
+
+.card__tradeoff-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: right;
+  padding-top: 2px;
+}
+
+.card__tradeoff-label--chosen   { color: #4ade80; }
+.card__tradeoff-label--rejected { color: #f87171; }
+.card__tradeoff-label--downsides { color: #fb923c; }
+
+/* tags */
+.card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card__tag {
+  font-size: 11px;
+  color: #8b949e;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-family: ui-monospace, monospace;
+}
