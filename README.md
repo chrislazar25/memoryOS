@@ -65,6 +65,14 @@ npm install && npm run dev
 
 Open `http://localhost:5173` — the demo repo is preloaded.
 
+If your API is running on `localhost:8000`, set:
+
+```bash
+# PowerShell
+$env:VITE_API_BASE_URL="http://localhost:8000"
+npm run dev
+```
+
 **4. Query via API directly**
 
 ```bash
@@ -92,6 +100,14 @@ Your agent can now call `search_memory` to retrieve context before making change
 
 ---
 
+## Deployment
+
+Use:
+- Vercel for the frontend (`ui/`)
+- Render for the backend (`core.server:app`)
+
+---
+
 ## Architecture
 
 ```
@@ -103,11 +119,13 @@ memory_reasons.json → ingest → SQLite → TF-IDF retrieval → FastAPI → U
 ```
 memoryos/
 ├── demo-repo/          crafted git repo with memory_reasons.json
+├── render.yaml         Render backend service definition
 ├── core/
 │   ├── store.py        SQLite layer
 │   ├── ingest.py       reads reasons file, stores memory
 │   ├── retrieval.py    TF-IDF semantic search
 │   ├── server.py       FastAPI REST API
+│   ├── seed_demo.py    explicit one-time demo data seed script
 │   └── mcp_server.py   MCP server for agent integration
 └── ui/                 React + TypeScript
 ```

@@ -16,11 +16,14 @@ memories
 """
 
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-_DEFAULT_DB = Path(__file__).parent / "memories.db"
+_DEFAULT_DB = Path(
+    os.getenv("MEMORYOS_DB_PATH", str(Path(__file__).parent / "memories.db"))
+)
 
 
 def _connect(db_path: Path = _DEFAULT_DB) -> sqlite3.Connection:

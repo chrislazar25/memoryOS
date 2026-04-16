@@ -1,6 +1,6 @@
 import type { Memory, SearchResult } from "./types";
 
-const BASE = "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export async function fetchMemories(repo: string): Promise<Memory[]> {
   const res = await fetch(`${BASE}/memory?repo=${encodeURIComponent(repo)}`);
