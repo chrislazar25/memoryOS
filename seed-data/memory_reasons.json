@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "repo": "demo-api",
+  "memories": [
+    {
+      "commit_hash": "f77507a5bca5a033923b199af01696a782326467",
+      "commit_message": "feat: add JWT authentication to Flask API",
+      "files_changed": ["app.py", "requirements.txt", "README.md"],
+      "reason": "We needed stateless auth so the API could scale horizontally without shared session storage. JWT lets each worker verify tokens independently using a shared secret, with no database round-trip per request.",
+      "decision_type": "design_choice",
+      "tradeoffs": {
+        "chosen": "Stateless JWTs — no server-side state, scales easily, no DB on every request",
+        "rejected": "Cookie sessions — require shared session store or sticky routing in multi-worker setup",
+        "known_downsides": "Cannot revoke tokens before expiry; if a token is compromised or a user must be locked out immediately, you have to wait up to 1 hour."
+      },
+      "tags": ["auth", "jwt", "stateless", "scalability"]
+    },
+    {
+      "commit_hash": "3d16413afe90ed6cabe6e8d85f58cebd69fa455b",
+      "commit_message": "refactor: replace JWT with server-side sessions",
+      "files_changed": ["app.py", "requirements.txt"],
+      "reason": "A contractor account needed immediate lockout. Their JWT was still valid for ~45 minutes after we disabled the account. Server-side sessions can be cleared instantly server-side. The scalability argument for JWT turned out not to matter — we run two workers behind nginx and Flask's signed cookie session is fine.",
+      "decision_type": "design_change",
+      "tradeoffs": {
+        "chosen": "Server-side sessions — instant revocation, simpler logout, no library dependency",
+        "rejected": "Keeping JWT with a token blacklist — adds the same statefulness without simplifying the code",
+        "known_downsides": "Sessions are tied to a specific server unless we add a shared session store (Redis) later. Not suitable if we add mobile clients that can't use cookies."
+      },
+      "tags": ["auth", "sessions", "security", "revocation", "incident-driven"]
+    },
+    {
+      "commit_hash": "8f42ffa952fd641a789df9fae1ee567758d955ad",
+      "commit_message": "perf: add Redis cache for /users list endpoint",
+      "files_changed": ["app.py", "cache.py", "requirements.txt"],
+      "reason": "During a Black Friday traffic spike the /users admin endpoint hit 380 ms p99. Profiling showed it was a three-table Postgres join that runs on every admin page load. Added a 60-second Redis cache in front of it; p99 dropped to 4 ms. TTL of 60 s was chosen because admin user lists are not time-sensitive — 1-minute stale data is acceptable.",
+      "decision_type": "performance",
+      "tradeoffs": {
+        "chosen": "Redis cache with 60 s TTL — dramatic latency improvement, low complexity, reuses existing Redis",
+        "rejected": [
+          "Postgres materialized view — harder to invalidate, requires DBA approval to add",
+          "Query optimization — tried adding an index, only reduced to 210 ms, not enough"
+        ],
+        "known_downsides": "Up to 60 s of stale data for admin user list. Cache is not invalidated on writes yet (tracked as follow-up). Redis outage causes cache miss fallback to slow DB path."
+      },
+      "tags": ["performance", "caching", "redis", "latency", "incident-driven"]
+    },
+    {
+      "commit_hash": "4c511031b98170a697c809be1b5a4dfa66b2e774",
+      "commit_message": "security: add rate limiting to /login (credential-stuffing incident)",
+      "files_changed": ["app.py", "requirements.txt"],
+      "reason": "On 2024-11-08 we detected 14,000 login attempts in 3 minutes from a rotating IP pool — a credential-stuffing attack using a leaked password list. No accounts were breached but the auth service was saturated. Implemented per-IP rate limiting at 10 req/min on /login to make future attacks economically unviable.",
+      "decision_type": "security_incident_response",
+      "tradeoffs": {
+        "chosen": "Flask-Limiter with Redis storage — ships in hours, logic lives in our codebase, no external dependency",
+        "rejected": [
+          "WAF IP blocking — our plan tier requires a support ticket and 24-48 h turnaround",
+          "CAPTCHA on /login — adds friction for all users, including legitimate automated clients"
+        ],
+        "known_downsides": "10 req/min per IP can block legitimate users behind NAT/VPN sharing one IP. Sophisticated attackers with large IP pools can stay under per-IP limits. Does not address password reuse — recommend enforcing MFA separately."
+      },
+      "tags": ["security", "rate-limiting", "incident-response", "credential-stuffing", "redis"]
+    }
+  ]
+}

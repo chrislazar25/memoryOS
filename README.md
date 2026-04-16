@@ -43,11 +43,14 @@ No digging through PRs. No asking a teammate. No re-explaining to your agent.
 
 ## Running locally
 
-**1. Ingest the demo repo**
+**1. Ingest demo data**
+
+Use the copy tracked in the main repo (works everywhere), or the narrative repo under `demo-repo/` if you have it checked out:
 
 ```bash
 cd core
-python ingest.py ../demo-repo/memory_reasons.json --repo demo-api
+python ingest.py ../seed-data/memory_reasons.json
+# or: python ingest.py ../demo-repo/memory_reasons.json
 ```
 
 **2. Start the API server**
@@ -103,17 +106,64 @@ Your agent can now call `search_memory` to retrieve context before making change
 ## Deployment
 
 Use:
-- Vercel for the frontend (`ui/`)
-- Render for the backend (`core.server:app`)
+- **Vercel** for the frontend (`ui/`)
+- **Render** for the backend (`core.server:app`)
+
+### Zero-friction hosting: `seed-data/` vs `demo-repo/`
+
+The crafted narrative may live under `demo-repo/`. If `demo-repo/` is its **own git repository**, GitHub often does **not** include its files inside the parent MemoryOS repo clone. Render then fails with `FileNotFoundError: ... demo-repo/memory_reasons.json`.
+
+**Fix used here:** a deploy-safe copy lives at [`seed-data/memory_reasons.json`](seed-data/memory_reasons.json), committed in the main repo. [`core/seed_demo.py`](core/seed_demo.py) loads, in order:
+
+1. `MEMORYOS_SEED_PATH` (optional override)
+2. `seed-data/memory_reasons.json`
+3. `demo-repo/memory_reasons.json` (fallback for local dev)
+
+You can keep using `demo-repo/` as a separate repo for experiments; sync content into `seed-data/` when the narrative changes (see [`seed-data/README.md`](seed-data/README.md)).
 
 ### Render (free tier, no persistent disk)
 
-Render free web services do not support attached disks. In this repo, backend SQLite is configured to use `/tmp/memories.db` on Render free tier.
+[`render.yaml`](render.yaml) configures:
 
-What this means:
-- Storage is ephemeral.
-- Data can reset on service restarts, cold starts, or redeploys.
-- This is acceptable for portfolio/demo usage, but not for durable production data.
+- `plan: free` (no persistent disk)
+- `MEMORYOS_DB_PATH=/tmp/memories.db` (ephemeral SQLite)
+- `startCommand: python core/seed_demo.py && uvicorn core.server:app --host 0.0.0.0 --port $PORT` (seed on every boot so cold starts and redeploys stay demo-ready)
+
+What ephemeral storage means:
+
+- Data can reset on restarts, cold starts, or redeploys.
+- Fine for portfolio/demo; not for durable production data (a future v2 path is a hosted DB like Postgres).
+
+### No-friction deploy checklist
+
+**Backend (Render)**
+
+1. Push this repo to GitHub (ensure `seed-data/memory_reasons.json` is in the tree).
+2. New **Blueprint** (or Web Service) from the repo; confirm it reads `render.yaml`.
+3. After deploy, open **Environment** and confirm `MEMORYOS_DB_PATH` is `/tmp/memories.db`.
+4. Smoke-test:
+   - `GET https://<your-service>.onrender.com/memory?repo=demo-api`
+   - `GET https://<your-service>.onrender.com/search?query=jwt&repo=demo-api`
+
+**Frontend (Vercel)**
+
+1. Import the same repo; set **Root Directory** to `ui`.
+2. Set `VITE_API_BASE_URL=https://<your-service>.onrender.com` (no trailing slash).
+3. Deploy and open the Vercel URL; timeline and search should hit Render.
+
+Local UI env template: [`ui/.env.example`](ui/.env.example).
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|--------|----------------|-----|
+| `FileNotFoundError: ... demo-repo/memory_reasons.json` on Render | Nested `demo-repo` not in parent repo checkout | Ensure `seed-data/memory_reasons.json` is committed and pushed; redeploy. |
+| Empty timeline / no search results | DB empty or wiped (`/tmp`) | Redeploy or wait for restart — startup runs `seed_demo.py` again; or run `python core/seed_demo.py` in Render **Shell**. |
+| Browser CORS or wrong API host | Frontend still pointing at localhost | Set `VITE_API_BASE_URL` on Vercel to your Render URL and redeploy the frontend. |
+
+### Later: durable production data
+
+For real persistence beyond demo tier, plan a move from file SQLite to **Postgres** (or Render disk on a paid plan). The current setup optimizes for **zero friction** on free Render + Vercel.
 
 ---
 
@@ -127,14 +177,15 @@ memory_reasons.json → ingest → SQLite → TF-IDF retrieval → FastAPI → U
 
 ```
 memoryos/
-├── demo-repo/          crafted git repo with memory_reasons.json
+├── demo-repo/          optional nested git repo (narrative); may not ship on GitHub
+├── seed-data/          memory_reasons.json copy for deploy + seed_demo.py
 ├── render.yaml         Render backend service definition
 ├── core/
 │   ├── store.py        SQLite layer
 │   ├── ingest.py       reads reasons file, stores memory
 │   ├── retrieval.py    TF-IDF semantic search
 │   ├── server.py       FastAPI REST API
-│   ├── seed_demo.py    explicit one-time demo data seed script
+│   ├── seed_demo.py    demo seed (seed-data first, then demo-repo)
 │   └── mcp_server.py   MCP server for agent integration
 └── ui/                 React + TypeScript
 ```
