@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { Memory, SearchResult } from "../types";
 import { Badge } from "./Badge";
 import "./MemoryCard.css";
