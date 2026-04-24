@@ -22,6 +22,10 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from config import load_env
+
+load_env()
+
 logger = logging.getLogger(__name__)
 
 VALID_DECISION_TYPES = {
@@ -177,7 +181,7 @@ class AnthropicProvider(LLMProvider):
     Extracts memory using the Anthropic SDK.
 
     Reads ANTHROPIC_API_KEY from the environment.
-    Model: claude-sonnet-4-20250514 (as specified by the user).
+    Model: ANTHROPIC_MODEL from env.
     """
 
     MODEL = os.environ.get("ANTHROPIC_MODEL")

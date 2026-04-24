@@ -9,10 +9,13 @@ Options
 -------
   --repo-path   PATH   Path to local git repository (required)
   --repo-name   NAME   Name to store in DB (required)
-  --branch      REF    Branch/ref to walk (default: HEAD)
-  --limit       INT    Max commits to process, most recent first (default: 20)
-  --skip-merges        Skip merge commits (default: on; --no-skip-merges to disable)
-  --db          PATH   Path to SQLite database (default: core/memories.db)
+  --branch          REF   Branch/ref to walk (default: HEAD)
+  --limit           INT   Max commits to process, most recent first (default: 20)
+  --skip-merges           Skip merge commits (default: on; --no-skip-merges to disable)
+  --skip-patterns   LIST  Comma-separated substrings; commits whose first line contains
+                          any match are skipped (default: '⬆ Bump,📝 Update release
+                          notes,🔖 Release version')
+  --db              PATH  Path to SQLite database (default: core/memories.db)
 """
 
 import argparse
@@ -75,7 +78,10 @@ def run(
     skip_merges: bool,
     db_path: Path,
     branch: str = "HEAD",
+    skip_patterns: list[str] | None = None,
 ) -> dict:
+    if skip_patterns is None:
+        skip_patterns = []
     store.init_db(db_path=db_path)
     extractor = get_extractor()
     repo = git.Repo(repo_path)
@@ -104,6 +110,22 @@ def run(
                 "hash": short,
                 "message": label,
                 "status": "skipped",
+                "duration_ms": 0,
+                "decision_type": None,
+            })
+            continue
+
+        # --- skip: pattern match ---
+        matched = next((p for p in skip_patterns if p in first_line), None)
+        if matched:
+            logger.info("  %s  %-62s  skipped (pattern match: %r)", short, label, matched)
+            total += 1
+            skipped += 1
+            per_commit_log.append({
+                "hash": short,
+                "message": label,
+                "status": "skipped",
+                "skip_reason": "pattern match",
                 "duration_ms": 0,
                 "decision_type": None,
             })

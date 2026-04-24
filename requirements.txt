@@ -1,4 +1,6 @@
 fastapi
+gitpython
+python-dotenv
 uvicorn
 scikit-learn
 numpy
