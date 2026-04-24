@@ -224,6 +224,11 @@ def main() -> None:
         default=True,
         help="Skip merge commits (default: on)",
     )
+    parser.add_argument(
+        "--skip-patterns",
+        default="",
+        help="Comma-separated substrings; commits whose first line contains any match are skipped",
+    )
     parser.add_argument("--db", type=Path, default=None)
     args = parser.parse_args()
 
@@ -232,6 +237,7 @@ def main() -> None:
         sys.exit(1)
 
     db_path = args.db or Path(__file__).parent / "memories.db"
+    skip_patterns = [p.strip() for p in args.skip_patterns.split(",") if p.strip()]
 
     run(
         repo_path=args.repo_path,
@@ -240,6 +246,7 @@ def main() -> None:
         skip_merges=args.skip_merges,
         db_path=db_path,
         branch=args.branch,
+        skip_patterns=skip_patterns,
     )
 
 
