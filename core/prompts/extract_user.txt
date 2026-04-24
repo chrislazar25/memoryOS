@@ -1,0 +1,4 @@
+Commit message: {message}
+
+Git diff:
+{diff}

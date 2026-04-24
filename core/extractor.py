@@ -20,6 +20,7 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -31,37 +32,9 @@ VALID_DECISION_TYPES = {
     "incident",
 }
 
-_SYSTEM_PROMPT = """\
-You are a code historian. Given a git diff and commit message, extract the \
-structured reasoning behind this commit.
-
-Return ONLY valid JSON — no markdown fences, no extra keys — matching this \
-schema exactly:
-{
-  "reason": "<detailed explanation of WHY this change was made>",
-  "decision_type": "<one of: design_choice | design_change | performance | security_incident_response | incident>",
-  "tradeoffs": {
-    "chosen":           "<what approach was chosen and why>",
-    "rejected":         "<alternatives that were considered and rejected>",
-    "known_downsides":  "<drawbacks or risks of the chosen approach>"
-  },
-  "tags": ["<relevant>", "<string>", "<tags>"]
-}
-
-decision_type guide:
-  design_choice              — deliberate new architectural or API decision
-  design_change              — modification to an existing design
-  performance                — optimisation or throughput improvement
-  security_incident_response — response to a discovered security vulnerability
-  incident                   — response to a production bug or outage
-"""
-
-_USER_TEMPLATE = """\
-Commit message: {message}
-
-Git diff:
-{diff}
-"""
+_PROMPTS_DIR = Path(__file__).parent / "prompts"
+_SYSTEM_PROMPT: str = (_PROMPTS_DIR / "extract_system.txt").read_text(encoding="utf-8")
+_USER_TEMPLATE: str = (_PROMPTS_DIR / "extract_user.txt").read_text(encoding="utf-8")
 
 
 def _fallback(commit_message: str) -> dict:
