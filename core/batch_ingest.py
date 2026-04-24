@@ -79,6 +79,7 @@ def run(
     db_path: Path,
     branch: str = "HEAD",
     skip_patterns: list[str] | None = None,
+    delay: float = 2.0,
 ) -> dict:
     if skip_patterns is None:
         skip_patterns = []
@@ -168,6 +169,9 @@ def run(
 
         logger.info("  %s  %-62s  %s  (%dms)", short, label, status, duration_ms)
 
+        if delay > 0:
+            time.sleep(delay)
+
         total += 1
         if is_fb:
             fallbacks += 1
@@ -201,6 +205,7 @@ def run(
         "fallback_count": fallbacks,
         "skipped_count": skipped,
         "avg_extraction_time_ms": avg_ms,
+        "delay_between_calls_s": delay,
         "per_commit": per_commit_log,
     }
     log_path = _LOGS_DIR / f"ingest_run_{ts}.json"
@@ -225,6 +230,12 @@ def main() -> None:
         help="Skip merge commits (default: on)",
     )
     parser.add_argument(
+        "--delay",
+        type=float,
+        default=2.0,
+        help="Seconds to sleep between extraction calls to avoid rate limits (default: 2.0)",
+    )
+    parser.add_argument(
         "--skip-patterns",
         default="",
         help="Comma-separated substrings; commits whose first line contains any match are skipped",
@@ -247,6 +258,7 @@ def main() -> None:
         db_path=db_path,
         branch=args.branch,
         skip_patterns=skip_patterns,
+        delay=args.delay,
     )
 
 
