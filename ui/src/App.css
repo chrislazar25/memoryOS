@@ -14,12 +14,13 @@
 }
 
 .app__header-inner {
-  max-width: 780px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
 .app__title-group {
@@ -49,6 +50,45 @@
   border: 1px solid #21262d;
   border-radius: 6px;
   padding: 3px 10px;
+}
+
+/* ── tab nav ── */
+.app__tabs {
+  display: flex;
+  gap: 2px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.app__tab {
+  padding: 4px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8b949e;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+
+.app__tab:hover {
+  color: #c9d1d9;
+}
+
+.app__tab--active {
+  background: #161b22;
+  color: #e6edf3;
+}
+
+/* ── graph tab container ── */
+.app__graph-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── main layout ── */

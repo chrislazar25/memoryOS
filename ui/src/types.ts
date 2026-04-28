@@ -2,7 +2,9 @@ export type DecisionType =
   | "design_choice"
   | "design_change"
   | "performance"
-  | "security_incident_response";
+  | "security_incident_response"
+  | "incident"
+  | "spec";
 
 export interface Tradeoffs {
   chosen?: string;

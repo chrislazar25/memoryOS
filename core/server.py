@@ -9,6 +9,7 @@ Endpoints
   POST /ingest
   GET  /search?query=&repo=&top_k=3
   GET  /memory?repo=
+  GET  /graph?repo=
 """
 
 import json
@@ -89,6 +90,29 @@ class SearchResult(BaseModel):
     tags: list[str]
 
 
+class GraphNode(BaseModel):
+    id: str
+    label: str
+    type: str
+    commit_hash: str
+    commit_message: str
+    decision_type: str
+    reason: str
+    tradeoffs: dict
+    tags: list[str]
+
+
+class GraphLink(BaseModel):
+    source: str
+    target: str
+    relationship: str
+
+
+class GraphResponse(BaseModel):
+    nodes: list[GraphNode]
+    links: list[GraphLink]
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -147,3 +171,70 @@ def memory(
     """Return all stored memories for a repo, unscored, in insertion order."""
     rows = store.fetch_all(repo)
     return rows
+
+
+@app.post("/memory", response_model=MemoryRecord, status_code=201)
+def create_memory(body: MemoryRecord):
+    """Store a single memory record and return it with its assigned id."""
+    new_id = store.insert_memory(
+        repo=body.repo or "",
+        commit_hash=body.commit_hash,
+        commit_message=body.commit_message,
+        reason=body.reason,
+        decision_type=body.decision_type,
+        tradeoffs=body.tradeoffs,
+        tags=body.tags,
+    )
+    return {**body.model_dump(), "id": new_id}
+
+
+@app.get("/graph", response_model=GraphResponse)
+def graph(
+    repo: str = Query(..., description="Repo name"),
+):
+    """
+    Return a force-graph representation of memories for a repo.
+
+    Nodes: one per memory.
+    Links:
+      - 'follows'  — consecutive commits in chronological (insertion) order
+      - 'related'  — any two non-consecutive nodes that share at least one tag
+    """
+    rows = store.fetch_all(repo)
+
+    nodes: list[GraphNode] = []
+    for row in rows:
+        msg = row["commit_message"]
+        label = (msg[:40] + "…") if len(msg) > 40 else msg
+        nodes.append(GraphNode(
+            id=row["commit_hash"],
+            label=label,
+            type=row["decision_type"],
+            commit_hash=row["commit_hash"],
+            commit_message=row["commit_message"],
+            decision_type=row["decision_type"],
+            reason=row["reason"],
+            tradeoffs=row["tradeoffs"],
+            tags=row["tags"],
+        ))
+
+    connected: set[tuple[str, str]] = set()
+    links: list[GraphLink] = []
+
+    # Chronological edges between consecutive commits
+    for i in range(len(rows) - 1):
+        src, tgt = rows[i]["commit_hash"], rows[i + 1]["commit_hash"]
+        connected.add((src, tgt))
+        links.append(GraphLink(source=src, target=tgt, relationship="follows"))
+
+    # Tag-based edges — only for pairs not already connected
+    for i in range(len(rows)):
+        for j in range(i + 1, len(rows)):
+            src, tgt = rows[i]["commit_hash"], rows[j]["commit_hash"]
+            if (src, tgt) in connected:
+                continue
+            if set(rows[i]["tags"]) & set(rows[j]["tags"]):
+                connected.add((src, tgt))
+                links.append(GraphLink(source=src, target=tgt, relationship="related"))
+
+    return GraphResponse(nodes=nodes, links=links)
